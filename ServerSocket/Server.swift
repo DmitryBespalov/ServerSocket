@@ -10,71 +10,49 @@ import Foundation
 
 class Server: NSObject, StreamDelegate {
 
-    var socket: CFSocket!
-    var port: Int!
+    private var socket: CFSocket!
+    private var port: Int!
 
-    var inputStream: InputStream!
-    var outputStream: OutputStream!
+    private var inputStream: InputStream!
+    private var outputStream: OutputStream!
+
+    private var readData = Data()
+    private var totalBytesRead = 0
+
+    private var writeData = Data()
+    private var totalBytesWritten = 0
+
+    private let certificateName = "MyLocalServer"
+    private let passphrase = "123456"
 
     func start(port: Int) {
         self.port = port
         bind()
     }
 
-    func startConnection() {
-        configureSSL(for: inputStream)
-        open(stream: inputStream)
+    func stop() {
+        CFSocketInvalidate(socket)
     }
 
-    func open(stream: Stream) {
-        stream.delegate = self
-        stream.schedule(in: RunLoop.current, forMode: RunLoopMode.defaultRunLoopMode)
-        stream.open()
-    }
-
-    func configureSSL(for stream: Stream) {
-        guard let certs = certificates() else { return }
-        let sslSettings: [String: AnyObject] = [
-            kCFStreamSSLIsServer as String: NSNumber(booleanLiteral: true),
-            kCFStreamSSLCertificates as String: certs as AnyObject,
-            kCFStreamSSLLevel as String: (kCFStreamSocketSecurityLevelNegotiatedSSL as AnyObject),
-            ]
-        let result = stream.setProperty(sslSettings,
-                                        forKey: Stream.PropertyKey(rawValue: kCFStreamPropertySSLSettings as String))
-        if !result {
-            print("Failed to set SSL settings")
+    func stream(_ aStream: Stream, handle eventCode: Stream.Event) {
+        switch eventCode {
+        case Stream.Event.openCompleted:
+            print("\(aStream) opened")
+        case Stream.Event.hasBytesAvailable:
+            read()
+        case Stream.Event.hasSpaceAvailable:
+            write()
+        case Stream.Event.errorOccurred:
+            print("\(aStream) error occured: \(inputStream.streamError?.localizedDescription ?? "")")
+            fallthrough
+        case Stream.Event.endEncountered:
+            shutDown(stream: aStream)
+        default:
+            print("\(aStream) default action for event \(eventCode)")
         }
     }
 
-    func certificates() -> [AnyObject]? {
-        guard let certPath = Bundle(for: Server.self).url(forResource: "MyLocalServer",
-                                                          withExtension: "p12") else {
-            print("Certificate not found")
-            return nil
-        }
-        do {
-            let certData = try Data(contentsOf: certPath, options: [])
-            let password = "123456"
-            let options: NSDictionary = [kSecImportExportPassphrase: password]
-            var items: CFArray? = nil
-            let status = SecPKCS12Import(certData as CFData, options, &items)
-            if status != errSecSuccess {
-                fatalError("Error importing SSL certificate: \(status)")
-            }
-            guard let certArray = items as? [[String: Any]] else {
-                fatalError("No items imported from certificate")
-            }
-            let identity = certArray[0][kSecImportItemIdentity as String] as! SecIdentity
-            let certChain = certArray[0][kSecImportItemCertChain as String] as! [SecCertificate]
-            let certs: [AnyObject] = [identity as AnyObject] + certChain
-            return certs
-        } catch {
-            print("Error configuring SSL")
-        }
-        return nil
-    }
-
-    func bind() {
+    private func bind() {
         let callback: CFSocketCallBack = {
             (s: CFSocket?, callbackType: CFSocketCallBackType, address: CFData?,
             data: UnsafeRawPointer?, info: UnsafeMutableRawPointer?) in
@@ -117,18 +95,19 @@ class Server: NSObject, StreamDelegate {
                                 CFSocketCallBackType.acceptCallBack.rawValue,
                                 callback,
                                 &context)
+
         let portInBigEndian = UInt16(port).bigEndian
-        var addr = sockaddr_in(sin_len: __uint8_t(MemoryLayout<sockaddr_in>.size),
+        var address = sockaddr_in(sin_len: __uint8_t(MemoryLayout<sockaddr_in>.size),
                                sin_family: sa_family_t(AF_INET),
                                sin_port: in_port_t(portInBigEndian),
                                sin_addr: in_addr(s_addr: INADDR_ANY),
                                sin_zero: (0, 0, 0, 0, 0, 0, 0, 0))
-        let result = withUnsafePointer(to: &addr) { (pointer: UnsafePointer<sockaddr_in>) -> Bool in
-            return pointer.withMemoryRebound(to: UInt8.self, capacity: MemoryLayout<sockaddr_in>.size, {
-                (addrPtr: UnsafePointer<UInt8>) -> Bool in
+        let result = withUnsafePointer(to: &address) { (pointerToAddress: UnsafePointer<sockaddr_in>) -> Bool in
+            return pointerToAddress.withMemoryRebound(to: UInt8.self, capacity: MemoryLayout<sockaddr_in>.size, {
+                (pointerToAddressBytes: UnsafePointer<UInt8>) -> Bool in
 
-                let addrData = CFDataCreate(kCFAllocatorDefault, addrPtr, MemoryLayout<sockaddr_in>.size)
-                let result = CFSocketSetAddress(self.socket, addrData)
+                let addressData = CFDataCreate(kCFAllocatorDefault, pointerToAddressBytes, MemoryLayout<sockaddr_in>.size)
+                let result = CFSocketSetAddress(self.socket, addressData)
                 switch result {
                 case .error:
                     print("Error setting address")
@@ -155,36 +134,59 @@ class Server: NSObject, StreamDelegate {
                            CFRunLoopMode.defaultMode)
     }
 
-    func htons(_ value: UInt16) -> UInt16 {
-        return (value << 8) + (value >> 8)
+    private func startConnection() {
+        configureSSL(for: inputStream)
+        open(stream: inputStream)
     }
 
-    func stop() {
-        CFSocketInvalidate(socket)
+    private func open(stream: Stream) {
+        stream.delegate = self
+        stream.schedule(in: RunLoop.current, forMode: RunLoopMode.defaultRunLoopMode)
+        stream.open()
     }
 
-    func stream(_ aStream: Stream, handle eventCode: Stream.Event) {
-        switch eventCode {
-        case Stream.Event.openCompleted:
-            print("\(aStream) opened")
-        case Stream.Event.hasBytesAvailable:
-            read()
-        case Stream.Event.hasSpaceAvailable:
-            write()
-        case Stream.Event.errorOccurred:
-            print("\(aStream) error occured: \(inputStream.streamError?.localizedDescription ?? "")")
-            fallthrough
-        case Stream.Event.endEncountered:
-            shutDown(stream: aStream)
-        default:
-            print("\(aStream) default action for event \(eventCode)")
+    private func configureSSL(for stream: Stream) {
+        guard let certificates = certificates() else { return }
+        let sslSettings: [String: AnyObject] = [
+            kCFStreamSSLIsServer as String: NSNumber(booleanLiteral: true),
+            kCFStreamSSLCertificates as String: certificates as AnyObject,
+            kCFStreamSSLLevel as String: (kCFStreamSocketSecurityLevelNegotiatedSSL as AnyObject),
+            ]
+        let result = stream.setProperty(sslSettings,
+                                        forKey: Stream.PropertyKey(rawValue: kCFStreamPropertySSLSettings as String))
+        if !result {
+            print("Failed to set SSL settings")
         }
     }
 
-    var readData = Data()
-    var totalBytesRead = 0
+    private func certificates() -> [AnyObject]? {
+        guard let certificateLocation = Bundle(for: Server.self).url(forResource: certificateName,
+                                                          withExtension: "p12") else {
+            print("Certificate not found")
+            return nil
+        }
+        do {
+            let certificateData = try Data(contentsOf: certificateLocation, options: [])
+            let options: NSDictionary = [kSecImportExportPassphrase: passphrase]
+            var items: CFArray? = nil
+            let importStatus = SecPKCS12Import(certificateData as CFData, options, &items)
+            if importStatus != errSecSuccess {
+                fatalError("Error importing SSL certificate: \(importStatus)")
+            }
+            guard let contents = items as? [[String: Any]] else {
+                fatalError("No items imported from the certificate")
+            }
+            let identity = contents[0][kSecImportItemIdentity as String] as! SecIdentity
+            let certificateChain = contents[0][kSecImportItemCertChain as String] as! [SecCertificate]
+            let result: [AnyObject] = [identity as AnyObject] + certificateChain
+            return result
+        } catch {
+            print("Error configuring SSL")
+        }
+        return nil
+    }
 
-    func read() {
+    private func read() {
         print("Reading bytes from input")
         let bufferSize = 1024
         var buffer = [UInt8](repeating: 0, count: bufferSize)
@@ -206,7 +208,7 @@ class Server: NSObject, StreamDelegate {
         }
     }
 
-    func handleRequest() {
+    private func handleRequest() {
         print("*** Request: \(String(data: readData, encoding: String.Encoding.utf8) ?? "")")
         let body = "<html><body><h1>Hello, world!</h1></body></html>"
         let length = body.lengthOfBytes(using: String.Encoding.utf8)
@@ -221,16 +223,13 @@ class Server: NSObject, StreamDelegate {
         open(stream: outputStream)
     }
 
-    func shutDown(stream: Stream) {
+    private func shutDown(stream: Stream) {
         stream.close()
         stream.remove(from: RunLoop.current, forMode: RunLoopMode.defaultRunLoopMode)
         print("Stream is closed")
     }
 
-    var writeData = Data()
-    var totalBytesWritten = 0
-
-    func write() {
+    private func write() {
         print("Preparing to write bytes")
 
         writeData.withUnsafeMutableBytes({ (pointer: UnsafeMutablePointer<UInt8>) in

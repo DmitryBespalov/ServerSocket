@@ -23,6 +23,10 @@ class ViewController: UIViewController {
         client.start(port: 8080)
     }
 
+    deinit {
+        server.stop()
+    }
+
     override func didReceiveMemoryWarning() {
         super.didReceiveMemoryWarning()
         // Dispose of any resources that can be recreated.
