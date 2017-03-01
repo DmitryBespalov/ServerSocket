@@ -6,3 +6,5 @@ The server uses a self-signed certificate. In order for it to work, you should i
 The passphrase for the server's digital identity `Certificates/MyLocalServer.p12` is `123456`.
 
 Tested on Swift 3.0, Xcode 8.2.1.
+
+License: MIT (see LICENSE.txt)
