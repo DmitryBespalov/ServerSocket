@@ -12,6 +12,9 @@
 		52FC64DA1E674348008911E6 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 52FC64D81E674348008911E6 /* Main.storyboard */; };
 		52FC64DC1E674348008911E6 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 52FC64DB1E674348008911E6 /* Assets.xcassets */; };
 		52FC64DF1E674348008911E6 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 52FC64DD1E674348008911E6 /* LaunchScreen.storyboard */; };
+		52FC64E71E67436C008911E6 /* Server.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52FC64E61E67436C008911E6 /* Server.swift */; };
+		52FC64E91E674AB3008911E6 /* Client.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52FC64E81E674AB3008911E6 /* Client.swift */; };
+		52FC64EB1E674C3C008911E6 /* MyLocalServer.p12 in Resources */ = {isa = PBXBuildFile; fileRef = 52FC64EA1E674C34008911E6 /* MyLocalServer.p12 */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -22,6 +25,9 @@
 		52FC64DB1E674348008911E6 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		52FC64DE1E674348008911E6 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		52FC64E01E674348008911E6 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		52FC64E61E67436C008911E6 /* Server.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Server.swift; sourceTree = "<group>"; };
+		52FC64E81E674AB3008911E6 /* Client.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Client.swift; sourceTree = "<group>"; };
+		52FC64EA1E674C34008911E6 /* MyLocalServer.p12 */ = {isa = PBXFileReference; lastKnownFileType = file; path = MyLocalServer.p12; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -55,7 +61,10 @@
 			isa = PBXGroup;
 			children = (
 				52FC64D41E674348008911E6 /* AppDelegate.swift */,
+				52FC64E61E67436C008911E6 /* Server.swift */,
+				52FC64E81E674AB3008911E6 /* Client.swift */,
 				52FC64D61E674348008911E6 /* ViewController.swift */,
+				52FC64EA1E674C34008911E6 /* MyLocalServer.p12 */,
 				52FC64D81E674348008911E6 /* Main.storyboard */,
 				52FC64DB1E674348008911E6 /* Assets.xcassets */,
 				52FC64DD1E674348008911E6 /* LaunchScreen.storyboard */,
@@ -126,6 +135,7 @@
 				52FC64DF1E674348008911E6 /* LaunchScreen.storyboard in Resources */,
 				52FC64DC1E674348008911E6 /* Assets.xcassets in Resources */,
 				52FC64DA1E674348008911E6 /* Main.storyboard in Resources */,
+				52FC64EB1E674C3C008911E6 /* MyLocalServer.p12 in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -137,6 +147,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				52FC64D71E674348008911E6 /* ViewController.swift in Sources */,
+				52FC64E71E67436C008911E6 /* Server.swift in Sources */,
+				52FC64E91E674AB3008911E6 /* Client.swift in Sources */,
 				52FC64D51E674348008911E6 /* AppDelegate.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -260,6 +272,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				DEBUG_ACTIVITY_MODE = disable;
 				INFOPLIST_FILE = ServerSocket/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
 				PRODUCT_BUNDLE_IDENTIFIER = com.dmitrybespalov.ServerSocket;
@@ -272,6 +285,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				DEBUG_ACTIVITY_MODE = "";
 				INFOPLIST_FILE = ServerSocket/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
 				PRODUCT_BUNDLE_IDENTIFIER = com.dmitrybespalov.ServerSocket;
